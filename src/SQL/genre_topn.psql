@@ -1,0 +1,49 @@
+-- name: genre_topn
+-- get the N top tracks by genre
+
+SELECT
+    genre.name AS genre,
+    ss.name AS track,
+    artist.name
+FROM
+    genre
+    LEFT JOIN LATERAL
+    /*
+     * The lateral left join implements a nested loop
+     * over the genres and allows the fetching of the top
+     * N tracks per genre, applying the order by desc limit n
+     * clause.
+     *
+     * here we choose to weight the tracks by how many
+     * times they appear on playlists, so we join against
+     * the playlisttrack bridge table and count the number
+     * of appearances
+     */
+    (
+        SELECT
+            track.name,
+            track.albumid,
+            count(playlistid) AS count
+        FROM
+            track
+            LEFT JOIN playlisttrack USING (trackid)
+        WHERE
+            track.genreid = genre.genreid
+        GROUP BY
+            track.trackid
+        ORDER BY
+            count DESC
+        LIMIT :n) AS ss (name,
+        albumid,
+        count) ON TRUE
+    /*
+     * the join occurs in the queries where clause, so we
+     * don't need to add another one at the outer join 
+     * syntax level (here), hence the "on true" part
+     */
+    JOIN album USING (albumid)
+    JOIN artist USING (artistid)
+ORDER BY
+    genre.name,
+    ss.count DESC;
+

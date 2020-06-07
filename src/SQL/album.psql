@@ -1,0 +1,10 @@
+-- name: list_albums_by_artist
+-- List the album titles and duration of a given artist
+SELECT album.title AS album,
+       SUM(milliseconds) * INTERVAL '1 ms' AS duration
+FROM album
+JOIN artist using (artistid)
+LEFT JOIN track using (albumid)
+WHERE artist.name = :name
+GROUP BY album
+ORDER BY duration;
